@@ -2,6 +2,7 @@ TITLE = 'MYTF1'
 ART = 'art-default.jpg'
 ICON = 'icon-default.png'
 
+DATABASE = 'database.json'
 API_INIT = 'http://api.mytf1.tf1.fr/mobile/init?device=%s'
 API_SYNC = 'http://api.mytf1.tf1.fr/mobile/sync/%s?device=%s&key=%s'
 
@@ -21,11 +22,29 @@ def Start():
 
 ####################################################################################################
 @handler('/video/mytf1', TITLE)
-def MainMenu():
+def Programs():
 
     oc = ObjectContainer()
 
-    # download the database the first time if doesn't already exists
-    database = JSON.ObjectFromURL(API_INIT % ('ios-smartphone'))
+    for program in JSON.ObjectFromURL(R(DATABASE))['programs']:
+        oc.add(DirectoryObject(
+            key = Callback(Videos, program_slug=program['slug']),
+            title = program['title'],
+            summary = program['description']
+        ))
+
+    return oc
+
+####################################################################################################
+@route('/video/mytf1/{program_slug}')
+def Videos(program_slug):
+
+    program = {}
+
+    for p in JSON.ObjectFromURL(R(DATABASE))['programs']:
+        if p['slug'] is program_slug:
+            program = p
+
+    oc = ObjectContainer(title2=program['title'])
 
     return oc
