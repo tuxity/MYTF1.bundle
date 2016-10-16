@@ -27,11 +27,11 @@ def Programs():
 
     oc = ObjectContainer()
 
-    for program in JSON.ObjectFromString(Resource.load(DB_PROGRAMS)):
+    for program in JSON.ObjectFromString(Resource.Load(DB_PROGRAMS)):
         oc.add(DirectoryObject(
             key = Callback(Videos, program_slug=program['slug']),
             title = program['title'],
-            summary = program['description']
+            summary = program['description'] if 'description' in program else None
         ))
 
     return oc
