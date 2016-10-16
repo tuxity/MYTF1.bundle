@@ -2,6 +2,9 @@ TITLE = 'MYTF1'
 ART = 'art-default.jpg'
 ICON = 'icon-default.png'
 
+API_INIT = 'http://api.mytf1.tf1.fr/mobile/init?device=%s'
+API_SYNC = 'http://api.mytf1.tf1.fr/mobile/sync/%s?device=%s&key=%s'
+
 ####################################################################################################
 def Start():
 
@@ -14,4 +17,9 @@ def Start():
 def MainMenu():
 
     oc = ObjectContainer()
+
+    # download the database the first time if doesn't already exists
+    database = JSON.ObjectFromURL(API_INIT % ('ios-smartphone'))
+
+
     return oc
