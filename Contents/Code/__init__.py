@@ -2,7 +2,8 @@ TITLE = 'MYTF1'
 ART = 'art-default.jpg'
 ICON = 'icon-default.png'
 
-DATABASE = 'database.json'
+DB_PROGRAMS = 'database/programs.json'
+
 API_INIT = 'http://api.mytf1.tf1.fr/mobile/init?device=%s'
 API_SYNC = 'http://api.mytf1.tf1.fr/mobile/sync/%s?device=%s&key=%s'
 
@@ -26,7 +27,7 @@ def Programs():
 
     oc = ObjectContainer()
 
-    for program in JSON.ObjectFromURL(R(DATABASE))['programs']:
+    for program in JSON.ObjectFromString(Resource.load(DB_PROGRAMS)):
         oc.add(DirectoryObject(
             key = Callback(Videos, program_slug=program['slug']),
             title = program['title'],
@@ -41,7 +42,7 @@ def Videos(program_slug):
 
     program = {}
 
-    for p in JSON.ObjectFromURL(R(DATABASE))['programs']:
+    for p in JSON.ObjectFromString(Resource.load(DB_PROGRAMS)):
         if p['slug'] is program_slug:
             program = p
 
