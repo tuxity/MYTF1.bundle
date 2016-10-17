@@ -4,7 +4,7 @@
 import json
 import requests
 
-keys_2_dump = ['programs']
+keys_2_dump = ['programs', 'links']
 
 database = requests.get('http://api.mytf1.tf1.fr/mobile/init?device=ios-smartphone').json()
 

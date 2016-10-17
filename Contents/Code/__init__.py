@@ -2,7 +2,9 @@ TITLE = 'MYTF1'
 ART = 'art-default.jpg'
 ICON = 'icon-default.png'
 
-DB_PROGRAMS = 'database/programs.json'
+DB = 'database'
+DB_PROGRAMS = '%s/programs.json' % DB
+DB_LINKS = '%s/links.json' % DB
 
 API_INIT = 'http://api.mytf1.tf1.fr/mobile/init?device=%s'
 API_SYNC = 'http://api.mytf1.tf1.fr/mobile/sync/%s?device=%s&key=%s'
