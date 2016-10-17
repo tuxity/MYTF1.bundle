@@ -66,7 +66,7 @@ def Programs(filter_by):
             summary = prog['description'] if 'description' in prog else None
         ))
 
-    oc.objects.sort(key=lambda obj: Regex('^The ').split(obj.title)[-1])
+    oc.objects.sort(key=lambda obj: obj.title)
 
     return oc
 
