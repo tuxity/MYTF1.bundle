@@ -30,10 +30,13 @@ def Programs():
     oc = ObjectContainer()
 
     for program in JSON.ObjectFromString(Resource.Load(DB_PROGRAMS)):
+        thumb = 'http://photos1.tf1.fr/image/320/160/%s/%s' % (program['menuImage'], 000000) #last param is a 6 lenght key
+
         oc.add(DirectoryObject(
             key = Callback(Videos, program_slug=program['slug']),
             title = program['title'],
-            summary = program['description'] if 'description' in program else None
+            summary = program['description'] if 'description' in program else None,
+            thumb = Resource.ContentsOfURLWithFallback(thumb, fallback=ICON)
         ))
 
     oc.objects.sort(key=lambda obj: Regex('^The ').split(obj.title)[-1])
@@ -44,7 +47,7 @@ def Programs():
 @route('/video/mytf1/{program_slug}')
 def Videos(program_slug):
 
-    program = {}
+    program = None
 
     for p in JSON.ObjectFromString(Resource.load(DB_PROGRAMS)):
         if p['slug'] is program_slug:
