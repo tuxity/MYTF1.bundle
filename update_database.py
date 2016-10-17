@@ -4,7 +4,7 @@
 import json
 import requests
 
-keys_2_dump = ['programs', 'links']
+keys_2_dump = ['programs']
 
 database = requests.get('http://api.mytf1.tf1.fr/mobile/init?device=ios-smartphone').json()
 
@@ -12,6 +12,6 @@ for key in database.keys():
     if key in keys_2_dump:
         print('Dumping %s...' % key)
         with open('Contents/Resources/database/%s.json' % key , 'w') as outfile:
-            json.dump(database['programs'], outfile)
+            json.dump(database[key], outfile)
 
 print('done.')
