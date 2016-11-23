@@ -45,9 +45,16 @@ def Programs(category):
 
     for program in html.xpath('//ul[contains(@id, "js_filter_el_container")]/li'):
         if program.xpath('./@data-type')[0] == category or category == 'all':
+            imgs = program.xpath('./div/a/div/picture/source/@data-srcset')
+            if (len(imgs) != 0):
+                img = imgs[0]
+            else:
+                img = program.xpath('./div/a/div/picture/source/@srcset')[0]
+
             oc.add(DirectoryObject(
                 key = Callback(Videos, program_url=program.xpath('./div/a/@href')[0]),
-                title = program.xpath('./div/div/a/div/p/text()')[0]
+                title = program.xpath('./div/div/a/div/p/text()')[0],
+                thumb = 'http:' + img.split(',')[-1].split(' ')[0]
             ))
 
     return oc
@@ -60,10 +67,15 @@ def Videos(program_url):
     html = HTML.ElementFromURL(VIDEOS % (BASE_URL, program_url))
 
     for video in html.xpath('//ul[contains(@class, "grid")]/li'):
+        imgs = video.xpath('./div/a/div/picture/source/@data-srcset')
+        if (len(imgs) != 0):
+            img = imgs[0]
+        else:
+            img = video.xpath('./div/a/div/picture/source/@srcset')[0]
+
         url = video.xpath('./div/div/a/@href')[0]
         title = video.xpath('./div/div/a/div/p[contains(@class, "title")]/text()')[0]
         summary = video.xpath('./div/div/a/div/p[contains(@class, "stitle")]/text()')[0]
-        thumb = None
         duration = video.xpath('./div/div/a/div/p[contains(@class, "uptitle")]/span/text()')[0]
         originally_available_at = video.xpath('./div/div/a/div/p[contains(@class, "uptitle")]/span/text()')[2]
 
@@ -71,7 +83,7 @@ def Videos(program_url):
             url = url,
             title = title,
             summary = summary,
-            thumb = thumb,
+            thumb = 'http:' + img.split(',')[-1].split(' ')[0],
             duration = int(duration),
             originally_available_at = Datetime.ParseDate(originally_available_at)
         ))
