@@ -102,7 +102,7 @@ def Videos(video_cat, prog_url):
         originally_available_at = video.xpath('./div/div/a/div/p[contains(@class, "uptitle")]/span/text()')[2]
 
         oc.add(VideoClipObject(
-            url = BASE_URL + url,
+            url = GetVideoURL(url),
             title = title,
             summary = summary,
             thumb = 'http:' + img.split(',')[-1].split(' ')[0],
@@ -111,3 +111,11 @@ def Videos(video_cat, prog_url):
         ))
 
     return oc
+
+def GetVideoURL():
+
+    html = HTML.ElementFromURL(BASE_URL, prog_url)
+
+    #TODO: connect to wat.tv api to get the video url in m3u8 format
+
+    return None
