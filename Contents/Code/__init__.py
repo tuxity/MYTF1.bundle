@@ -2,11 +2,9 @@ TITLE = 'MYTF1'
 ART = 'art-default.jpg'
 ICON = 'icon-default.png'
 
-DB = 'database'
-DB_PROGRAMS = '%s/programs.json' % DB
-
-API_INIT = 'http://api.mytf1.tf1.fr/mobile/init?device=%s'
-API_SYNC = 'http://api.mytf1.tf1.fr/mobile/sync/%s?device=%s&key=%s'
+BASE_URL = 'http://www.tf1.fr'
+PROGRAMS = '%s/programmes-tv' % BASE_URL
+VIDEOS = '%s/%s/videos'
 
 ####################################################################################################
 def Start():
@@ -28,57 +26,54 @@ def MainMenu():
 
     oc = ObjectContainer()
 
-    categories = [{'slug': 'all', 'name': 'Tous les genres'}]
+    html = HTML.ElementFromURL(PROGRAMS)
 
-    for prog in JSON.ObjectFromString(Resource.Load(DB_PROGRAMS)):
-        exists = False
-        for cat in categories:
-            if cat['slug'] == prog['categorySlug']:
-                exists = True
-        if exists is False:
-            categories.append({'slug': prog['categorySlug'], 'name': prog['category']})
-
-    for cat in categories:
+    for category in html.xpath('//ul[contains(@class, "filters_2") and contains(@class, "contentopen")]/li/a'):
         oc.add(DirectoryObject(
-            key = Callback(Programs, filter_by=cat['slug']),
-            title = cat['name']
+            key = Callback(Programs, category=category.xpath('./@data-target')[0]),
+            title = category.xpath('./text()')[0]
         ))
 
     return oc
 
-@route('/video/mytf1/{filter_by}')
-def Programs(filter_by):
+@route('/video/mytf1/programs')
+def Programs(category):
 
     oc = ObjectContainer()
 
-    for prog in JSON.ObjectFromString(Resource.Load(DB_PROGRAMS)):
-        if filter_by != 'all' and filter_by != prog['categorySlug']:
-            continue
+    html = HTML.ElementFromURL(PROGRAMS)
 
-        #thumb = None
-        #if 'menuImage' in prog:
-        #    thumb = 'http://photos1.tf1.fr/image/320/160/%s/%s' % (prog['menuImage'], 000000) #last param is a 6 lenght key
-
-        oc.add(DirectoryObject(
-            key = Callback(Videos, program_slug=prog['slug']),
-            title = prog['title'],
-            summary = prog['description'] if 'description' in prog else None
-        ))
-
-    oc.objects.sort(key=lambda obj: obj.title)
+    for program in html.xpath('//ul[contains(@id, "js_filter_el_container")]/li'):
+        if program.xpath('./@data-type')[0] == category or category == 'all':
+            oc.add(DirectoryObject(
+                key = Callback(Videos, program_url=program.xpath('./div/a/@href')[0]),
+                title = program.xpath('./div/div/a/div/p/text()')[0]
+            ))
 
     return oc
 
-####################################################################################################
-@route('/video/mytf1/{program_slug}')
-def Videos(program_slug):
+@route('/video/mytf1/programs/videos')
+def Videos(program_url):
 
-    program = None
+    oc = ObjectContainer()
 
-    for prog in JSON.ObjectFromString(Resource.load(DB_PROGRAMS)):
-        if prog['slug'] is program_slug:
-            program = prog
+    html = HTML.ElementFromURL(VIDEOS % (BASE_URL, program_url))
 
-    oc = ObjectContainer(title2=program['title'])
+    for video in html.xpath('//ul[contains(@class, "grid")]/li'):
+        url = video.xpath('./div/div/a/@href')[0]
+        title = video.xpath('./div/div/a/div/p[contains(@class, "title")]/text()')[0]
+        summary = video.xpath('./div/div/a/div/p[contains(@class, "stitle")]/text()')[0]
+        thumb = None
+        duration = video.xpath('./div/div/a/div/p[contains(@class, "uptitle")]/span/text()')[0]
+        originally_available_at = video.xpath('./div/div/a/div/p[contains(@class, "uptitle")]/span/text()')[2]
+
+        oc.add(VideoClipObject(
+            url = url,
+            title = title,
+            summary = summary,
+            thumb = thumb,
+            duration = int(duration),
+            originally_available_at = Datetime.ParseDate(originally_available_at)
+        ))
 
     return oc
