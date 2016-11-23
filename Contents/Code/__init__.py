@@ -1,3 +1,5 @@
+import hashlib, base64, urllib2
+
 TITLE = 'MYTF1'
 ART = 'art-default.jpg'
 ICON = 'icon-default.png'
@@ -7,10 +9,12 @@ BASE_URL = 'http://www.tf1.fr'
 PROGRAMS = '%s/programmes-tv' % BASE_URL
 VIDEOS = '%s/%s/videos'
 
+RE_MEDIA_ID = Regex('www.wat.tv/embedframe/(?P<media_id>[^"]+)"')
+
 ####################################################################################################
 def Start():
 
-    ObjectContainer.title1 = NAME
+    ObjectContainer.title1 = TITLE
     ObjectContainer.art = R(ART)
 
     DirectoryObject.thumb = R(ICON)
@@ -112,10 +116,35 @@ def Videos(video_cat, prog_url):
 
     return oc
 
-def GetVideoURL():
+def GetVideoURL(prog_url):
 
-    html = HTML.ElementFromURL(BASE_URL, prog_url)
+    page = HTTP.Request(BASE_URL + prog_url).content
+    media_id = RE_MEDIA_ID.search(page).group('media_id')
 
-    #TODO: connect to wat.tv api to get the video url in m3u8 format
+    def GetServerTimestamp():
+        servertime = HTTP.Request('http://www.wat.tv/servertime').content
+        timestamp = servertime.split(u"""|""")[0]
+        return int(timestamp)
 
-    return None
+    def GetAuthKey(app_name, media_id, timestamp):
+        secret = base64.b64decode('VzNtMCMxbUZJ')
+        string = '%s-%s-%s-%s-%d' % (media_id, secret, app_name, secret, timestamp)
+        auth_key = hashlib.md5(string).hexdigest() + '/' + str(timestamp)
+        return auth_key
+
+    user_agent = 'myTF1/60010000.15040209 CFNetwork/609 Darwin/13.0.0'
+    app_name = 'sdk/Iphone/1.0'
+    method = 'getUrl'
+    timestamp = GetServerTimestamp()
+    version = '1.4.32'
+    auth_key = GetAuthKey(app_name, media_id, timestamp)
+    hosting_application_name = 'com.tf1.applitf1'
+    hosting_application_version = '60010000.15040209'
+
+    data = ('appName=%s&method=%s&mediaId=%s&authKey=%s&version=%s&hostingApplicationName=%s&hostingApplicationVersion=%s') % (app_name, method, media_id, auth_key, version, hosting_application_name, hosting_application_version)
+
+    data = HTTP.Request('http://api.wat.tv/services/Delivery', headers={'User-Agent': user_agent}, data=data).content
+    data = JSON.ObjectFromString(data)
+
+    res = HTTP.Request(data['message'], headers={'User-Agent': user_agent}).content
+    return res.url + '|User-Agent=' + urllib2.quote(user_agent)
