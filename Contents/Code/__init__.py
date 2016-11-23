@@ -86,8 +86,8 @@ def Videos(video_cat, prog_url):
     html = HTML.ElementFromURL(VIDEOS % (BASE_URL, prog_url))
 
     for video in html.xpath('//ul[contains(@class, "grid")]/li'):
-        if video.xpath('./@data-filter')[0] != video_cat and video_cat != 'all':
-            continue
+        #if video.xpath('./@data-filter')[0] != video_cat and video_cat != 'all':
+        #    continue
 
         imgs = video.xpath('./div/a/div/picture/source/@data-srcset')
         if (len(imgs) != 0):
