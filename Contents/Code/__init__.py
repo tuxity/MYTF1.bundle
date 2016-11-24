@@ -29,7 +29,7 @@ def Start():
 @handler(PREFIX, TITLE)
 def MainMenu():
 
-    oc = ObjectContainer()
+    oc = ObjectContainer(title2="Program Categories")
 
     html = HTML.ElementFromURL(PROGRAMS)
 
@@ -44,7 +44,7 @@ def MainMenu():
 @route(PREFIX + '/programs/{prog_cat}')
 def Programs(prog_cat):
 
-    oc = ObjectContainer()
+    oc = ObjectContainer(title2="Programs")
 
     html = HTML.ElementFromURL(PROGRAMS)
 
@@ -69,7 +69,7 @@ def Programs(prog_cat):
 @route(PREFIX + '/videos')
 def VideoCategories(prog_url):
 
-    oc = ObjectContainer()
+    oc = ObjectContainer(title2="Video Categories")
 
     html = HTML.ElementFromURL(VIDEOS % (BASE_URL, prog_url))
 
@@ -85,7 +85,7 @@ def VideoCategories(prog_url):
 @route(PREFIX + '/videos/{video_cat}')
 def Videos(video_cat, prog_url):
 
-    oc = ObjectContainer()
+    oc = ObjectContainer(title2="Videos")
 
     html = HTML.ElementFromURL(VIDEOS % (BASE_URL, prog_url))
 
