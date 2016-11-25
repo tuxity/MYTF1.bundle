@@ -110,28 +110,81 @@ def Videos(video_cat, prog_url):
         url = video.xpath('./div/div/a/@href')[0]
         title = video.xpath('./div/div/a/div/p[contains(@class, "title")]/text()')[0]
         summary = video.xpath('./div/div/a/div/p[contains(@class, "stitle")]/text()')[0]
-        duration = video.xpath('./div/div/a/div/p[contains(@class, "uptitle")]/span/text()')[0]
-        originally_available_at = video.xpath('./div/div/a/div/p[contains(@class, "uptitle")]/span/text()')[2]
+        thumb = 'http:' + img.split(',')[-1].split(' ')[0]
+        duration = int(video.xpath('./div/div/a/div/p[contains(@class, "uptitle")]/span/text()')[0]) * 1000
+        originally_available_at = None #Datetime.ParseDate(video.xpath('./div/div/a/div/p[contains(@class, "uptitle")]/span/text()')[2])
 
         oc.add(VideoClipObject(
-            url=GetVideoURL(url),
+            key=Callback(VideoDetails, title=title, summary=summary, thumb=thumb, duration=duration, originally_available_at=originally_available_at, rating_key=title, url=url),
             title=title,
             summary=summary,
-            thumb='http:' + img.split(',')[-1].split(' ')[0],
-            duration=int(duration),
-            originally_available_at=Datetime.ParseDate(originally_available_at)
+            thumb=thumb,
+            rating_key=title,
+            items=[
+                MediaObject(
+                    audio_channels=2,
+                    audio_codec=AudioCodec.AAC,
+                    video_codec=VideoCodec.H264,
+                    container=Container.MP4,
+                    video_frame_rate=25,
+                    optimized_for_streaming=True,
+                    parts=[
+                        PartObject(
+                            key=HTTPLiveStreamURL(Callback(PlayVideo, url=url))
+                        )
+                    ]
+                )
+            ]
         ))
 
     return oc
 
-def GetVideoURL(prog_url):
+
+def VideoDetails(title, summary, thumb, duration, originally_available_at, rating_key, url):
+
+    oc = ObjectContainer()
+
+    oc.add(VideoClipObject(
+        key=Callback(VideoDetails, title=title, summary=summary, thumb=thumb, duration=duration, originally_available_at=originally_available_at, rating_key=title, url=url),
+        title=title,
+        summary=summary,
+        thumb=thumb,
+        duration=duration,
+        originally_available_at=originally_available_at,
+        rating_key=rating_key,
+        items=[
+            MediaObject(
+                audio_channels=2,
+                audio_codec=AudioCodec.AAC,
+                video_codec=VideoCodec.H264,
+                container=Container.MP4,
+                video_frame_rate=25,
+                optimized_for_streaming=True,
+                parts=[
+                    PartObject(
+                        key=HTTPLiveStreamURL(Callback(PlayVideo, url=url))
+                    )
+                ]
+            )
+        ]
+    ))
+
+    return oc
+
+
+def PlayVideo(url):
+    real_url = GetVideoURLStream(url)
+    return Redirect(real_url)
+
+
+def GetVideoURLStream(prog_url):
 
     page = HTTP.Request(BASE_URL + prog_url).content
     media_id = RE_MEDIA_ID.search(page).group('media_id')
 
     def GetAuthKey(app_name, media_id):
         secret = base64.b64decode('VzNtMCMxbUZJ')
-        timestamp = HTTP.Request('http://www.wat.tv/servertime2').content
+        timestamp = HTTP.Request('http://www.wat.tv/servertime2', cacheTime=60).content
 
         string = '%s-%s-%s-%s-%s' % (media_id, secret, app_name, secret, timestamp)
 
@@ -147,7 +200,6 @@ def GetVideoURL(prog_url):
     hosting_application_version = '6.3'
 
     data = ('appName=%s&method=%s&mediaId=%s&authKey=%s&version=%s&hostingApplicationName=%s&hostingApplicationVersion=%s') % (app_name, method, media_id, auth_key, version, hosting_application_name, hosting_application_version)
-    data = HTTP.Request('http://api.wat.tv/services/Delivery', headers={'User-Agent': user_agent}, data=data).content
+    data = HTTP.Request('http://api.wat.tv/services/Delivery', headers={'User-Agent': user_agent}, cacheTime=60, data=data).content
     data = JSON.ObjectFromString(data)
-
     return data['message']
