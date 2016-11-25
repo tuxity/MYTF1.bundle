@@ -43,6 +43,7 @@ def MainMenu():
 
     return oc
 
+
 @route(PREFIX + '/programs/{prog_cat}')
 def Programs(prog_cat):
 
@@ -70,6 +71,7 @@ def Programs(prog_cat):
 
     return oc
 
+
 @route(PREFIX + '/videos')
 def VideoCategories(prog_url):
 
@@ -87,6 +89,7 @@ def VideoCategories(prog_url):
         ))
 
     return oc
+
 
 @route(PREFIX + '/videos/{video_cat}')
 def Videos(video_cat, prog_url):
@@ -111,7 +114,7 @@ def Videos(video_cat, prog_url):
         title = video.xpath('./div/div/a/div/p[contains(@class, "title")]/text()')[0]
         summary = video.xpath('./div/div/a/div/p[contains(@class, "stitle")]/text()')[0]
         thumb = 'http:' + img.split(',')[-1].split(' ')[0]
-        duration = int(video.xpath('./div/div/a/div/p[contains(@class, "uptitle")]/span/text()')[0]) * 1000
+        duration = video.xpath('./div/div/a/div/p[contains(@class, "uptitle")]/span/text()')[0]
         originally_available_at = None #Datetime.ParseDate(video.xpath('./div/div/a/div/p[contains(@class, "uptitle")]/span/text()')[2])
 
         oc.add(VideoClipObject(
@@ -140,6 +143,7 @@ def Videos(video_cat, prog_url):
     return oc
 
 
+@route(PREFIX + '/video/details')
 def VideoDetails(title, summary, thumb, duration, originally_available_at, rating_key, url):
 
     oc = ObjectContainer()
@@ -149,7 +153,7 @@ def VideoDetails(title, summary, thumb, duration, originally_available_at, ratin
         title=title,
         summary=summary,
         thumb=thumb,
-        duration=duration,
+        duration=int(duration) * 1000,
         originally_available_at=originally_available_at,
         rating_key=rating_key,
         items=[
@@ -172,11 +176,13 @@ def VideoDetails(title, summary, thumb, duration, originally_available_at, ratin
     return oc
 
 
+@route(PREFIX + '/video/play.m3u8')
 def PlayVideo(url):
     real_url = GetVideoURLStream(url)
     return Redirect(real_url)
 
 
+####################################################################################################
 def GetVideoURLStream(prog_url):
 
     page = HTTP.Request(BASE_URL + prog_url).content
