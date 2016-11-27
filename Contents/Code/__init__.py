@@ -1,4 +1,5 @@
-import hashlib, base64, urllib2
+import hashlib, base64
+import urlparse, urllib
 
 TITLE = 'MYTF1'
 ART = 'art-default.jpg'
@@ -122,22 +123,7 @@ def Videos(video_cat, prog_url):
             title=title,
             summary=summary,
             thumb=thumb,
-            rating_key=title,
-            items=[
-                MediaObject(
-                    audio_channels=2,
-                    audio_codec=AudioCodec.AAC,
-                    video_codec=VideoCodec.H264,
-                    container=Container.MP4,
-                    video_frame_rate=25,
-                    optimized_for_streaming=True,
-                    parts=[
-                        PartObject(
-                            key=HTTPLiveStreamURL(Callback(PlayVideo, url=url))
-                        )
-                    ]
-                )
-            ]
+            rating_key=title
         ))
 
     return oc
@@ -147,6 +133,9 @@ def Videos(video_cat, prog_url):
 def VideoDetails(title, summary, thumb, duration, originally_available_at, rating_key, url):
 
     oc = ObjectContainer()
+
+    playlist_url = GetVideoPlaylistURL(url)
+    streams = GetHLSStreams(playlist_url)
 
     oc.add(VideoClipObject(
         key=Callback(VideoDetails, title=title, summary=summary, thumb=thumb, duration=duration, originally_available_at=originally_available_at, rating_key=title, url=url),
@@ -158,18 +147,20 @@ def VideoDetails(title, summary, thumb, duration, originally_available_at, ratin
         rating_key=rating_key,
         items=[
             MediaObject(
+                bitrate=stream['bitrate'] / 1000,
                 audio_channels=2,
                 audio_codec=AudioCodec.AAC,
                 video_codec=VideoCodec.H264,
+                video_resolution=stream['resolution'],
                 container=Container.MP4,
-                video_frame_rate=25,
-                optimized_for_streaming=True,
+                video_frame_rate=stream["frame-rate"],
+                #optimized_for_streaming=True,
                 parts=[
                     PartObject(
-                        key=HTTPLiveStreamURL(Callback(PlayVideo, url=url))
+                        key=HTTPLiveStreamURL(Callback(PlayVideo, url=stream['url']))
                     )
                 ]
-            )
+            ) for stream in streams
         ]
     ))
 
@@ -178,12 +169,11 @@ def VideoDetails(title, summary, thumb, duration, originally_available_at, ratin
 
 @route(PREFIX + '/video/play.m3u8')
 def PlayVideo(url):
-    real_url = GetVideoURLStream(url)
-    return Redirect(real_url)
+    return Redirect(url)
 
 
 ####################################################################################################
-def GetVideoURLStream(prog_url):
+def GetVideoPlaylistURL(prog_url):
 
     page = HTTP.Request(BASE_URL + prog_url).content
     media_id = RE_MEDIA_ID.search(page).group('media_id')
@@ -208,4 +198,56 @@ def GetVideoURLStream(prog_url):
     data = ('appName=%s&method=%s&mediaId=%s&authKey=%s&version=%s&hostingApplicationName=%s&hostingApplicationVersion=%s') % (app_name, method, media_id, auth_key, version, hosting_application_name, hosting_application_version)
     data = HTTP.Request('http://api.wat.tv/services/Delivery', headers={'User-Agent': user_agent}, cacheTime=60, data=data).content
     data = JSON.ObjectFromString(data)
-    return data['message']
+
+    # remove bandwidth limit to get a playlist with hd stream
+    (scheme,
+     netloc,
+     path,
+     query_string,
+     fragment) = urlparse.urlsplit(data['message'])
+    query_params = urlparse.parse_qs(query_string)
+    query_params.pop('bwmax', None)
+    new_query_string = urllib.urlencode(query_params, doseq=True)
+    m3u8_url = urlparse.urlunsplit((scheme,
+                                    netloc,
+                                    path,
+                                    new_query_string,
+                                    fragment))
+    return m3u8_url
+
+
+####################################################################################################
+def GetHLSStreams(url):
+
+    playlist = HTTP.Request(url).content
+    streams = []
+
+    for line in playlist.splitlines():
+        if "BANDWIDTH" in line:
+            stream            = {}
+            stream["bitrate"] = int(Regex('(?<=BANDWIDTH=)[0-9]+').search(line).group(0))
+
+            if "RESOLUTION" in line:
+                stream["resolution"] = int(Regex('(?<=RESOLUTION=)[0-9]+x[0-9]+').search(line).group(0).split("x")[1])
+            else:
+                stream["resolution"] = 0
+
+            if "FRAME-RATE" in line:
+                stream["frame-rate"] = int(Regex('(?<=FRAME-RATE=)[0-9]+').search(line).group(0))
+            else:
+                stream["frame-rate"] = 0
+
+        elif ".m3u8" in line:
+            path = ''
+
+            if not "audio=" in line or not "video=" in line:
+                break
+
+            if not line.startswith("http"):
+                path = url[ : url.rfind('/') + 1]
+
+            stream["url"] = path + line
+
+            streams.append(stream)
+
+    return streams
