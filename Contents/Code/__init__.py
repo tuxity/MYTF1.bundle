@@ -134,9 +134,6 @@ def VideoDetails(title, summary, thumb, duration, originally_available_at, ratin
 
     oc = ObjectContainer()
 
-    playlist_url = GetVideoPlaylistURL(url)
-    #streams = GetHLSStreams(playlist_url)
-
     oc.add(VideoClipObject(
         key=Callback(VideoDetails, title=title, summary=summary, thumb=thumb, duration=duration, originally_available_at=originally_available_at, rating_key=title, url=url),
         title=title,
@@ -157,7 +154,7 @@ def VideoDetails(title, summary, thumb, duration, originally_available_at, ratin
                 optimized_for_streaming=True,
                 parts=[
                     PartObject(
-                        key=HTTPLiveStreamURL(Callback(PlayVideo, url=playlist_url))
+                        key=HTTPLiveStreamURL(Callback(PlayVideo, url=url))
                     )
                 ]
             ) for video_resolution, bitrate in [(720, 2719), (540, 1977), (360, 1340), (360, 704)]
@@ -170,7 +167,10 @@ def VideoDetails(title, summary, thumb, duration, originally_available_at, ratin
 @indirect
 @route(PREFIX + '/video/play.m3u8')
 def PlayVideo(url):
-    return IndirectResponse(VideoClipObject, key=url)
+
+    playlist_url = GetVideoPlaylistURL(url)
+
+    return IndirectResponse(VideoClipObject, key=playlist_url)
 
 
 ####################################################################################################
@@ -180,6 +180,7 @@ def GetVideoPlaylistURL(prog_url):
     media_id = RE_MEDIA_ID.search(page).group('media_id')
 
     def GetAuthKey(app_name, media_id):
+
         secret = base64.b64decode('VzNtMCMxbUZJ')
         timestamp = HTTP.Request('http://www.wat.tv/servertime2', cacheTime=60).content
 
@@ -215,40 +216,3 @@ def GetVideoPlaylistURL(prog_url):
                                     new_query_string,
                                     fragment))
     return m3u8_url
-
-
-####################################################################################################
-def GetHLSStreams(url):
-
-    playlist = HTTP.Request(url).content
-    streams = []
-
-    for line in playlist.splitlines():
-        if "BANDWIDTH" in line:
-            stream            = {}
-            stream["bitrate"] = int(Regex('(?<=BANDWIDTH=)[0-9]+').search(line).group(0))
-
-            if "RESOLUTION" in line:
-                stream["resolution"] = int(Regex('(?<=RESOLUTION=)[0-9]+x[0-9]+').search(line).group(0).split("x")[1])
-            else:
-                stream["resolution"] = 0
-
-            if "FRAME-RATE" in line:
-                stream["frame-rate"] = int(Regex('(?<=FRAME-RATE=)[0-9]+').search(line).group(0))
-            else:
-                stream["frame-rate"] = 0
-
-        elif ".m3u8" in line:
-            path = ''
-
-            if not "audio=" in line or not "video=" in line:
-                break
-
-            if not line.startswith("http"):
-                path = url[ : url.rfind('/') + 1]
-
-            stream["url"] = path + line
-
-            streams.append(stream)
-
-    return streams
