@@ -157,7 +157,7 @@ def VideoDetails(title, summary, thumb, duration, originally_available_at, ratin
                         key=HTTPLiveStreamURL(Callback(PlayVideo, url=url))
                     )
                 ]
-            ) for video_resolution, bitrate in [(720, 2719), (540, 1977), (360, 1340), (360, 704)]
+            ) for video_resolution, bitrate in [(720, 2719), (540, 1977), (360, 1340), (360, 704), (270, 492), (234, 280)]
         ]
     ))
 
