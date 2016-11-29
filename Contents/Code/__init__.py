@@ -116,7 +116,7 @@ def Videos(video_cat, prog_url):
         summary = video.xpath('./div/div/a/div/p[contains(@class, "stitle")]/text()')[0]
         thumb = 'http:' + img.split(',')[-1].split(' ')[0]
         duration = video.xpath('./div/div/a/div/p[contains(@class, "uptitle")]/span/text()')[0]
-        originally_available_at = None #Datetime.ParseDate(video.xpath('./div/div/a/div/p[contains(@class, "uptitle")]/span/text()')[2])
+        originally_available_at = video.xpath('./div/div/a/div/p[contains(@class, "uptitle")]/span/text()')[2]
 
         oc.add(VideoClipObject(
             key=Callback(VideoDetails, title=title, summary=summary, thumb=thumb, duration=duration, originally_available_at=originally_available_at, rating_key=title, url=url),
@@ -135,7 +135,7 @@ def VideoDetails(title, summary, thumb, duration, originally_available_at, ratin
     oc = ObjectContainer()
 
     playlist_url = GetVideoPlaylistURL(url)
-    streams = GetHLSStreams(playlist_url)
+    #streams = GetHLSStreams(playlist_url)
 
     oc.add(VideoClipObject(
         key=Callback(VideoDetails, title=title, summary=summary, thumb=thumb, duration=duration, originally_available_at=originally_available_at, rating_key=title, url=url),
@@ -143,33 +143,34 @@ def VideoDetails(title, summary, thumb, duration, originally_available_at, ratin
         summary=summary,
         thumb=thumb,
         duration=int(duration) * 1000,
-        originally_available_at=originally_available_at,
+        originally_available_at=Datetime.ParseDate(originally_available_at).date(),
         rating_key=rating_key,
         items=[
             MediaObject(
-                bitrate=stream['bitrate'] / 1000,
+                bitrate=bitrate,
                 audio_channels=2,
                 audio_codec=AudioCodec.AAC,
                 video_codec=VideoCodec.H264,
-                video_resolution=stream['resolution'],
+                video_resolution=video_resolution,
                 container=Container.MP4,
-                video_frame_rate=stream["frame-rate"],
-                #optimized_for_streaming=True,
+                video_frame_rate=25,
+                optimized_for_streaming=True,
                 parts=[
                     PartObject(
-                        key=HTTPLiveStreamURL(Callback(PlayVideo, url=stream['url']))
+                        key=HTTPLiveStreamURL(Callback(PlayVideo, url=playlist_url))
                     )
                 ]
-            ) for stream in streams
+            ) for video_resolution, bitrate in [(720, 2719), (540, 1977), (360, 1340), (360, 704)]
         ]
     ))
 
     return oc
 
-
+####################################################################################################
+@indirect
 @route(PREFIX + '/video/play.m3u8')
 def PlayVideo(url):
-    return Redirect(url)
+    return IndirectResponse(VideoClipObject, key=url)
 
 
 ####################################################################################################
