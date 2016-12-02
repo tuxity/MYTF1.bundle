@@ -151,7 +151,7 @@ def VideoDetails(title, summary, thumb, duration, originally_available_at, ratin
                 video_resolution=video_resolution,
                 container=Container.MP4,
                 video_frame_rate=25,
-                optimized_for_streaming=True,
+                optimized_for_streaming=False,
                 parts=[
                     PartObject(
                         key=HTTPLiveStreamURL(Callback(PlayVideo, url=url))
