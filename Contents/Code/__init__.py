@@ -1,4 +1,3 @@
-import hashlib, base64
 import re
 
 TITLE = 'MYTF1'
@@ -151,7 +150,7 @@ def VideoDetails(title, summary, thumb, duration, originally_available_at, ratin
                 video_codec=VideoCodec.H264,
                 video_resolution=video_resolution,
                 #container=Container.MP4,
-                container='mpegts',
+                container=Container.MPEGTS,
                 video_frame_rate=25,
                 optimized_for_streaming=True,
                 parts=[
@@ -183,12 +182,12 @@ def GetVideoPlaylistURL(prog_url):
 
     def GetAuthKey(app_name, media_id):
 
-        secret = base64.b64decode('VzNtMCMxbUZJ')
+        secret = String.Decode('VzNtMCMxbUZJ')
         timestamp = HTTP.Request('http://www.wat.tv/servertime2', cacheTime=60).content
 
         string = '%s-%s-%s-%s-%s' % (media_id, secret, app_name, secret, timestamp)
 
-        auth_key = hashlib.md5(string).hexdigest() + '/' + timestamp
+        auth_key = Hash.MD5(string) + '/' + timestamp
         return auth_key
 
     user_agent = 'MyTF1/16090602 CFNetwork/808.1.4 Darwin/16.1.0'
