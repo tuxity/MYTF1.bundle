@@ -1,5 +1,5 @@
 import hashlib, base64
-import urlparse, urllib
+import re
 
 TITLE = 'MYTF1'
 ART = 'art-default.jpg'
@@ -198,21 +198,9 @@ def GetVideoPlaylistURL(prog_url):
     hosting_application_version = '6.3'
 
     data = ('appName=%s&method=%s&mediaId=%s&authKey=%s&version=%s&hostingApplicationName=%s&hostingApplicationVersion=%s') % (app_name, method, media_id, auth_key, version, hosting_application_name, hosting_application_version)
-    data = HTTP.Request('http://api.wat.tv/services/Delivery', headers={'User-Agent': user_agent}, cacheTime=60, data=data).content
-    data = JSON.ObjectFromString(data)
+    payload = JSON.ObjectFromString(HTTP.Request('http://api.wat.tv/services/Delivery', headers={'User-Agent': user_agent}, cacheTime=60, data=data).content)
 
-    # remove bandwidth limit to get a playlist with hd stream
-    (scheme,
-     netloc,
-     path,
-     query_string,
-     fragment) = urlparse.urlsplit(data['message'])
-    query_params = urlparse.parse_qs(query_string)
-    query_params.pop('bwmax', None)
-    new_query_string = urllib.urlencode(query_params, doseq=True)
-    m3u8_url = urlparse.urlunsplit((scheme,
-                                    netloc,
-                                    path,
-                                    new_query_string,
-                                    fragment))
+    m3u8_url = re.sub(r'&?bw(?:max|min)=\d+', '', payload['message'])
+    Log.Debug('Playing: ' + m3u8_url)
+
     return m3u8_url
