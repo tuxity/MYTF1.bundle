@@ -144,14 +144,16 @@ def VideoDetails(title, summary, thumb, duration, originally_available_at, ratin
         rating_key=rating_key,
         items=[
             MediaObject(
-                bitrate=bitrate,
+                protocol=Protocol.HLS,
+                #bitrate=bitrate,
                 audio_channels=2,
                 audio_codec=AudioCodec.AAC,
                 video_codec=VideoCodec.H264,
                 video_resolution=video_resolution,
-                container=Container.MP4,
+                #container=Container.MP4,
+                container='mpegts',
                 video_frame_rate=25,
-                optimized_for_streaming=False,
+                optimized_for_streaming=True,
                 parts=[
                     PartObject(
                         key=HTTPLiveStreamURL(Callback(PlayVideo, url=url))
