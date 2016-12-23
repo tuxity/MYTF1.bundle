@@ -81,7 +81,6 @@ def VideoCategories(prog_url):
 
     html = HTML.ElementFromURL(VIDEOS % (BASE_URL, prog_url))
 
-    #TODO: it's possible to retrieve video filters, but I can't find a way to filter the videos, idk how they are doing it
     for category in html.xpath('//ul[contains(@class, "filters_1") and contains(@class, "contentopen")]/li/a'):
         oc.add(DirectoryObject(
             key=Callback(Videos, video_cat=category.xpath('./@data-filter')[0], prog_url=prog_url),
@@ -98,11 +97,9 @@ def Videos(video_cat, prog_url):
         title2="Videos"
     )
 
-    html = HTML.ElementFromURL(VIDEOS % (BASE_URL, prog_url))
+    html = HTML.ElementFromURL((VIDEOS + '?filter=%s') % (BASE_URL, prog_url, video_cat))
 
     for video in html.xpath('//ul[contains(@class, "grid")]/li'):
-        #if video.xpath('./@data-filter')[0] != video_cat and video_cat != 'all':
-        #    continue
 
         imgs = video.xpath('./div/a/div/picture/source/@data-srcset')
         if (len(imgs) != 0):
