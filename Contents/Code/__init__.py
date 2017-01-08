@@ -1,5 +1,3 @@
-import re
-
 TITLE = 'MYTF1'
 ART = 'art-default.jpg'
 ICON = 'icon-default.png'
@@ -8,8 +6,6 @@ PREFIX = '/video/mytf1'
 BASE_URL = 'http://www.tf1.fr'
 PROGRAMS = '%s/programmes-tv' % BASE_URL
 VIDEOS = '%s/%s/videos'
-
-RE_MEDIA_ID = Regex("c_idwat = '(?P<media_id>[^']+)'")
 
 ####################################################################################################
 def Start():
@@ -107,7 +103,7 @@ def Videos(video_cat, prog_url):
         else:
             img = video.xpath('./div/a/div/picture/source/@srcset')[0]
 
-        url = video.xpath('./div/div/a/@href')[0]
+        url = BASE_URL + video.xpath('./div/div/a/@href')[0]
         title = video.xpath('./div/div/a/div/p[contains(@class, "title")]/text()')[0]
         summary = video.xpath('./div/div/a/div/p[contains(@class, "stitle")]/text()')[0]
         thumb = 'http:' + img.split(',')[-1].split(' ')[0]
@@ -115,90 +111,12 @@ def Videos(video_cat, prog_url):
         originally_available_at = video.xpath('./div/div/a/div/p[contains(@class, "uptitle")]/span/text()')[2]
 
         oc.add(VideoClipObject(
-            key=Callback(VideoDetails, title=title, summary=summary, thumb=thumb, duration=duration, originally_available_at=originally_available_at, rating_key=title, url=url),
+            url=url,
             title=title,
             summary=summary,
             thumb=thumb,
-            rating_key=title
+            duration=int(duration) * 1000,
+            originally_available_at=Datetime.ParseDate(originally_available_at).date()
         ))
 
     return oc
-
-
-@route(PREFIX + '/video/details')
-def VideoDetails(title, summary, thumb, duration, originally_available_at, rating_key, url):
-
-    oc = ObjectContainer()
-
-    oc.add(VideoClipObject(
-        key=Callback(VideoDetails, title=title, summary=summary, thumb=thumb, duration=duration, originally_available_at=originally_available_at, rating_key=title, url=url),
-        title=title,
-        summary=summary,
-        thumb=thumb,
-        duration=int(duration) * 1000,
-        originally_available_at=Datetime.ParseDate(originally_available_at).date(),
-        rating_key=rating_key,
-        items=[
-            MediaObject(
-                protocol=Protocol.HLS,
-                #bitrate=bitrate,
-                audio_channels=2,
-                audio_codec=AudioCodec.AAC,
-                video_codec=VideoCodec.H264,
-                video_resolution=video_resolution,
-                #container=Container.MP4,
-                container=Container.MPEGTS,
-                video_frame_rate=25,
-                optimized_for_streaming=True,
-                parts=[
-                    PartObject(
-                        key=HTTPLiveStreamURL(Callback(PlayVideo, url=url))
-                    )
-                ]
-            ) for video_resolution, bitrate in [(720, 2719), (540, 1977), (360, 1340), (360, 704), (270, 492), (234, 280)]
-        ]
-    ))
-
-    return oc
-
-####################################################################################################
-@indirect
-@route(PREFIX + '/video/play.m3u8')
-def PlayVideo(url):
-
-    playlist_url = GetVideoPlaylistURL(url)
-
-    return IndirectResponse(VideoClipObject, key=playlist_url)
-
-
-####################################################################################################
-def GetVideoPlaylistURL(prog_url):
-
-    page = HTTP.Request(BASE_URL + prog_url).content
-    media_id = RE_MEDIA_ID.search(page).group('media_id')
-
-    def GetAuthKey(app_name, media_id):
-
-        secret = String.Decode('VzNtMCMxbUZJ')
-        timestamp = HTTP.Request('http://www.wat.tv/servertime2', cacheTime=60).content
-
-        string = '%s-%s-%s-%s-%s' % (media_id, secret, app_name, secret, timestamp)
-
-        auth_key = Hash.MD5(string) + '/' + timestamp
-        return auth_key
-
-    user_agent = 'MyTF1/16090602 CFNetwork/808.1.4 Darwin/16.1.0'
-    app_name = 'sdk/Iphone/1.0'
-    method = 'getUrl'
-    auth_key = GetAuthKey(app_name, media_id)
-    version = '1.8.14'
-    hosting_application_name = 'com.tf1.applitf1'
-    hosting_application_version = '6.3'
-
-    data = ('appName=%s&method=%s&mediaId=%s&authKey=%s&version=%s&hostingApplicationName=%s&hostingApplicationVersion=%s') % (app_name, method, media_id, auth_key, version, hosting_application_name, hosting_application_version)
-    payload = JSON.ObjectFromString(HTTP.Request('http://api.wat.tv/services/Delivery', headers={'User-Agent': user_agent}, cacheTime=60, data=data).content)
-
-    m3u8_url = re.sub(r'&?bw(?:max|min)=\d+', '', payload['message'])
-    Log.Debug('Playing: ' + m3u8_url)
-
-    return m3u8_url
