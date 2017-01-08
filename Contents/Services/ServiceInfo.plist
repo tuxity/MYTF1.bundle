@@ -12,6 +12,10 @@
             <array>
                 <string>^http://www\.tf1\.fr/.+</string>
             </array>
+            <key>TestURLs</key>
+            <array>
+                <string>http://www.tf1.fr/tmc/quotidien-avec-yann-barthes/videos/miss-france-2017-premier-talk-show-d-alicia-aylies.html</string>
+            </array>
         </dict>
     </dict>
 </dict>

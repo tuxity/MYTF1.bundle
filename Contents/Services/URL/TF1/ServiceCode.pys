@@ -61,6 +61,7 @@ def PlayVideo(url):
 def GetVideoPlaylistURL(prog_url):
 
     page = HTTP.Request(prog_url).content
+
     media_id = RE_MEDIA_ID.search(page).group('media_id')
 
     def GetAuthKey(app_name, media_id):
@@ -85,6 +86,5 @@ def GetVideoPlaylistURL(prog_url):
     payload = JSON.ObjectFromString(HTTP.Request('http://api.wat.tv/services/Delivery', headers={'User-Agent': user_agent}, cacheTime=60, data=data).content)
 
     m3u8_url = re.sub(r'&?bw(?:max|min)=\d+', '', payload['message'])
-    Log.Debug('Playing: ' + m3u8_url)
 
     return m3u8_url
