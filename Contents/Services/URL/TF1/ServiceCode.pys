@@ -41,7 +41,6 @@ def MediaObjectsForURL(url):
         raise Ex.MediaExpired
 
     hls_page = get_page(hls)
-    Log(hls_page)
     sources = RE_SOURCES.findall(hls_page)
     if not sources:
         raise Ex.MediaNotAvailable
