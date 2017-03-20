@@ -5,7 +5,7 @@ PREFIX = '/video/mytf1'
 
 BASE_URL = 'http://www.tf1.fr'
 PROGRAMS = '%s/programmes-tv' % BASE_URL
-VIDEOS = '%s/%s/videos'
+VIDEOS = '%s%s/videos'
 
 ####################################################################################################
 def Start():
