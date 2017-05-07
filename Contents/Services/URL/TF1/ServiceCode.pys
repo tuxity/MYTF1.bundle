@@ -1,0 +1,96 @@
+import re
+
+RE_MEDIA_ID = Regex("c_idwat = '(?P<media_id>[^']+)'")
+
+####################################################################################################
+def MetadataObjectForURL(url):
+
+    html = HTML.ElementFromURL(url)
+
+    container = html.xpath('//div[contains(@id, "contentPlayer")]/div/div/div/div[contains(@class, "container")]')[0]
+
+    title = container.xpath('./div[contains(@class, "content")]/h1[contains(@class, "title")]/text()')[0]
+    summary = container.xpath('./div[contains(@class, "content")]/div[contains(@class, "description")]/p/text()')[0]
+    thumb = 'http:' + container.xpath('./div[contains(@class, "iframe")]/meta[contains(@itemprop, "thumbnailUrl")]/@content')[0]
+    try:
+        duration = int(container.xpath('./div[contains(@class, "iframe")]/meta[contains(@itemprop, "duration")]/@content')[0]) * 1000
+    except:
+        duration = None
+    try:
+        oaa = Datetime.ParseDate(container.xpath('./div[contains(@class, "iframe")]/meta[contains(@itemprop, "uploadDate")]/@content')[0])
+    except:
+        oaa = None
+
+    return VideoClipObject(
+        title=title,
+        summary=summary,
+        thumb=thumb,
+        duration=duration,
+        originally_available_at=oaa
+    )
+
+
+####################################################################################################
+@deferred
+def MediaObjectsForURL(url):
+
+    return [
+        MediaObject(
+            protocol=Protocol.HLS,
+            #bitrate=bitrate,
+            audio_channels=2,
+            audio_codec=AudioCodec.AAC,
+            video_codec=VideoCodec.H264,
+            video_resolution=video_resolution,
+            #container=Container.MP4,
+            container=Container.MPEGTS,
+            video_frame_rate=25,
+            optimized_for_streaming=True,
+            parts=[
+                PartObject(
+                    key=HTTPLiveStreamURL(Callback(PlayVideo, url=url))
+                )
+            ]
+        ) for video_resolution, bitrate in [(720, 2719), (540, 1977), (360, 1340), (360, 704), (270, 492), (234, 280)]
+    ]
+
+####################################################################################################
+@indirect
+def PlayVideo(url):
+
+    playlist_url = GetVideoPlaylistURL(url)
+
+    return IndirectResponse(VideoClipObject, key=playlist_url)
+
+
+####################################################################################################
+def GetVideoPlaylistURL(prog_url):
+
+    page = HTTP.Request(prog_url).content
+
+    media_id = RE_MEDIA_ID.search(page).group('media_id')
+
+    def GetAuthKey(app_name, media_id):
+
+        secret = String.Decode('VzNtMCMxbUZJ')
+        timestamp = HTTP.Request('http://www.wat.tv/servertime2', cacheTime=60).content
+
+        string = '%s-%s-%s-%s-%s' % (media_id, secret, app_name, secret, timestamp)
+
+        auth_key = Hash.MD5(string) + '/' + timestamp
+        return auth_key
+
+    user_agent = 'MyTF1/16090602 CFNetwork/808.1.4 Darwin/16.1.0'
+    app_name = 'sdk/Iphone/1.0'
+    method = 'getUrl'
+    auth_key = GetAuthKey(app_name, media_id)
+    version = '1.8.14'
+    hosting_application_name = 'com.tf1.applitf1'
+    hosting_application_version = '6.3'
+
+    data = ('appName=%s&method=%s&mediaId=%s&authKey=%s&version=%s&hostingApplicationName=%s&hostingApplicationVersion=%s') % (app_name, method, media_id, auth_key, version, hosting_application_name, hosting_application_version)
+    payload = JSON.ObjectFromString(HTTP.Request('http://api.wat.tv/services/Delivery', headers={'User-Agent': user_agent}, cacheTime=60, data=data).content)
+
+    m3u8_url = re.sub(r'&?bw(?:max|min)=\d+', '', payload['message'])
+
+    return m3u8_url
