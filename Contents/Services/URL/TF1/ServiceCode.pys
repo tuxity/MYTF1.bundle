@@ -7,20 +7,26 @@ def MetadataObjectForURL(url):
 
     html = HTML.ElementFromURL(url)
 
-    container = html.xpath('//div[contains(@class, "container")]')[0]
+    container = html.xpath('//div[contains(@id, "contentPlayer")]/div/div/div/div[contains(@class, "container")]')[0]
 
     title = container.xpath('./div[contains(@class, "content")]/h1[contains(@class, "title")]/text()')[0]
     summary = container.xpath('./div[contains(@class, "content")]/div[contains(@class, "description")]/p/text()')[0]
-    thumb = container.xpath('./div[contains(@class, "iframe")]/meta[contains(@itemprop, "thumbnailUrl")]/@content')[0]
-    duration = container.xpath('./div[contains(@class, "iframe")]/meta[contains(@itemprop, "duration")]/@content')[0]
-    originally_available_at = container.xpath('./div[contains(@class, "iframe")]/meta[contains(@itemprop, "uploadDate")]/@content')[0]
+    thumb = 'http:' + container.xpath('./div[contains(@class, "iframe")]/meta[contains(@itemprop, "thumbnailUrl")]/@content')[0]
+    try:
+        duration = int(container.xpath('./div[contains(@class, "iframe")]/meta[contains(@itemprop, "duration")]/@content')[0]) * 1000
+    except:
+        duration = None
+    try:
+        oaa = Datetime.ParseDate(container.xpath('./div[contains(@class, "iframe")]/meta[contains(@itemprop, "uploadDate")]/@content')[0])
+    except:
+        oaa = None
 
     return VideoClipObject(
         title=title,
         summary=summary,
-        thumb='http:' + thumb,
-        duration=int(duration) * 1000,
-        originally_available_at=Datetime.ParseDate(originally_available_at).date()
+        thumb=thumb,
+        duration=duration,
+        originally_available_at=oaa
     )
 
 

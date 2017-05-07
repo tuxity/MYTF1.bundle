@@ -107,16 +107,22 @@ def Videos(video_cat, prog_url):
         title = video.xpath('./div/div/a/div/p[contains(@class, "title")]/text()')[0]
         summary = video.xpath('./div/div/a/div/p[contains(@class, "stitle")]/text()')[0]
         thumb = 'http:' + img.split(',')[-1].split(' ')[0]
-        duration = video.xpath('./div/div/a/div/p[contains(@class, "uptitle")]/span/text()')[0]
-        originally_available_at = video.xpath('./div/div/a/div/p[contains(@class, "uptitle")]/span/text()')[2]
+        try:
+            duration = int(video.xpath('./div/div/a/div/p[contains(@class, "uptitle")]/span/text()')[0]) * 1000
+        except:
+            duration = None
+        try:
+            oaa = Datetime.ParseDate(video.xpath('./div/div/a/div/p[contains(@class, "uptitle")]/span/text()')[2])
+        except:
+            oaa = None
 
         oc.add(VideoClipObject(
             url=url,
             title=title,
             summary=summary,
             thumb=thumb,
-            duration=int(duration) * 1000,
-            originally_available_at=Datetime.ParseDate(originally_available_at).date()
+            duration=duration,
+            originally_available_at=oaa
         ))
 
     return oc
