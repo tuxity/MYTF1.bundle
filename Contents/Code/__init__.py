@@ -119,12 +119,12 @@ def Videos(video_cat, prog_url):
             oaa = None
 
         oc.add(VideoClipObject(
+            url=url,
             title=title,
             summary=summary,
             thumb=thumb,
             duration=duration,
-            originally_available_at=oaa,
-            url=BASE_URL + url
+            originally_available_at=oaa
         ))
 
     return oc
