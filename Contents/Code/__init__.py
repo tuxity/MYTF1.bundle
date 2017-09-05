@@ -5,7 +5,7 @@ PREFIX = '/video/mytf1'
 
 BASE_URL = 'http://www.tf1.fr'
 PROGRAMS = '%s/programmes-tv' % BASE_URL
-VIDEOS = '%s%s/videos'
+VIDEOS = '%s/videos'
 
 ####################################################################################################
 def Start():
@@ -75,7 +75,7 @@ def VideoCategories(prog_url):
         title2="Video Categories"
     )
 
-    html = HTML.ElementFromURL(VIDEOS % (BASE_URL, prog_url))
+    html = HTML.ElementFromURL(VIDEOS % (prog_url))
 
     for category in html.xpath('//ul[contains(@class, "filters_1") and contains(@class, "contentopen")]/li/a'):
         oc.add(DirectoryObject(
@@ -93,7 +93,7 @@ def Videos(video_cat, prog_url):
         title2="Videos"
     )
 
-    html = HTML.ElementFromURL((VIDEOS + '?filter=%s') % (BASE_URL, prog_url, video_cat))
+    html = HTML.ElementFromURL((VIDEOS + '?filter=%s') % (prog_url, video_cat))
 
     for video in html.xpath('//ul[contains(@class, "grid")]/li'):
 
@@ -103,7 +103,7 @@ def Videos(video_cat, prog_url):
         else:
             img = video.xpath('./div/a/div/picture/source/@srcset')[0]
 
-        url = BASE_URL + video.xpath('./div/div/a/@href')[0]
+        url = video.xpath('./div/div/a/@href')[0]
         title = video.xpath('./div/div/a/div/p[contains(@class, "title")]/text()')[0]
         summary = video.xpath('./div/div/a/div/p[contains(@class, "stitle")]/text()')[0]
         thumb = 'http:' + img.split(',')[-1].split(' ')[0]
