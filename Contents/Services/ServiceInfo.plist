@@ -10,11 +10,11 @@
             <string>com.plexapp.plugins.mytf1</string>
             <key>URLPatterns</key>
             <array>
-                <string>^http://www\.tf1\.fr/.+</string>
+                <string>^https://www\.tf1\.fr/.+</string>
             </array>
             <key>TestURLs</key>
             <array>
-                <string>http://www.tf1.fr/tmc/quotidien-avec-yann-barthes/videos/miss-france-2017-premier-talk-show-d-alicia-aylies.html</string>
+                <string>https://www.tf1.fr/tmc/quotidien-avec-yann-barthes/videos/quotidien-premiere-partie-4-septembre-2017.html</string>
             </array>
         </dict>
     </dict>
