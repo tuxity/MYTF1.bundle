@@ -7,6 +7,8 @@ BASE_URL = 'http://www.tf1.fr'
 PROGRAMS = '%s/programmes-tv' % BASE_URL
 VIDEOS = '%s/videos'
 
+RE_MEDIA_ID = Regex("c_idwat = '(?P<media_id>[^']+)'")
+
 ####################################################################################################
 def Start():
 

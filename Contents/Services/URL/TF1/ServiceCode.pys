@@ -1,11 +1,12 @@
-import re
+#!/usr/bin/env python
 
 RE_MEDIA_ID = Regex("c_idwat = '(?P<media_id>[^']+)'")
+RE_SOURCES = Regex(r'(?i)bandwidth\=(\d+).*?resolution\=\d+x(\d+).*?\n(.+?\.m3u8[^\#]+)')
 
 ####################################################################################################
 def MetadataObjectForURL(url):
 
-    html = HTML.ElementFromURL(url)
+    html = HTML.ElementFromString(get_page(url))
 
     container = html.xpath('//div[contains(@id, "contentPlayer")]/div/div/div/div[contains(@class, "container")]')[0]
 
@@ -34,63 +35,78 @@ def MetadataObjectForURL(url):
 @deferred
 def MediaObjectsForURL(url):
 
+    hls = get_hls(url)
+    if not hls:
+        raise Ex.MediaExpired
+
+    hls_page = get_page(hls)
+    sources = RE_SOURCES.findall(hls_page)
+    if not sources:
+        raise Ex.MediaNotAvailable
+
+    #Log(sources)  # log raw m3u8 page
+    s = list()
+    for (b, r, u) in sources:
+        u = u.strip()
+        if ('audio=' not in u) or ('video=' not in u):
+            continue
+        if not u.startswith('http'):
+            u = hls[:hls.rfind('/')+1] + u
+        s.append((int(r), int(b)/1000, u))
+
+    Log(u"* MYTF1 Video Sources: '{0}'".format(s))
     return [
         MediaObject(
-            protocol=Protocol.HLS,
-            #bitrate=bitrate,
+            bitrate=bit,
             audio_channels=2,
-            audio_codec=AudioCodec.AAC,
-            video_codec=VideoCodec.H264,
-            video_resolution=video_resolution,
-            #container=Container.MP4,
-            container=Container.MPEGTS,
-            video_frame_rate=25,
+            video_resolution=str(res),
             optimized_for_streaming=True,
             parts=[
-                PartObject(
-                    key=HTTPLiveStreamURL(Callback(PlayVideo, url=url))
-                )
+                PartObject(key=HTTPLiveStreamURL(src))
             ]
-        ) for video_resolution, bitrate in [(720, 2719), (540, 1977), (360, 1340), (360, 704), (270, 492), (234, 280)]
+        ) for (res, bit, src) in reversed(sorted(s))
     ]
 
 ####################################################################################################
-@indirect
-def PlayVideo(url):
-
-    playlist_url = GetVideoPlaylistURL(url)
-
-    return IndirectResponse(VideoClipObject, key=playlist_url)
-
+def get_page(url, cachetime=10):
+    try:
+        page = HTTP.Request(url, cacheTime=cachetime).content
+    except:
+        Log.Exception(u"Error: Cannot open '{0}' >>>".format(url))
+        raise Ex.MediaNotAvailable
+    return page
 
 ####################################################################################################
-def GetVideoPlaylistURL(prog_url):
+def GetAuthKey(app_name, media_id):
 
-    page = HTTP.Request(prog_url).content
+    secret = String.Decode('VzNtMCMxbUZJ')
+    timestamp = get_page('http://www.wat.tv/servertime2', cachetime=60)
 
-    media_id = RE_MEDIA_ID.search(page).group('media_id')
+    string = '%s-%s-%s-%s-%s' % (media_id, secret, app_name, secret, timestamp)
 
-    def GetAuthKey(app_name, media_id):
+    return Hash.MD5(string) + '/' + timestamp
 
-        secret = String.Decode('VzNtMCMxbUZJ')
-        timestamp = HTTP.Request('http://www.wat.tv/servertime2', cacheTime=60).content
+####################################################################################################
+def get_hls(prog_url):
 
-        string = '%s-%s-%s-%s-%s' % (media_id, secret, app_name, secret, timestamp)
+    page = get_page(prog_url)
+    mid = RE_MEDIA_ID.search(page)
+    if not mid:
+        raise Ex.MediaNotAvailable
 
-        auth_key = Hash.MD5(string) + '/' + timestamp
-        return auth_key
-
-    user_agent = 'MyTF1/16090602 CFNetwork/808.1.4 Darwin/16.1.0'
     app_name = 'sdk/Iphone/1.0'
-    method = 'getUrl'
-    auth_key = GetAuthKey(app_name, media_id)
-    version = '1.8.14'
-    hosting_application_name = 'com.tf1.applitf1'
-    hosting_application_version = '6.3'
+    mid = mid.group('media_id')
+    user_agent = 'MyTF1/16090602 CFNetwork/808.1.4 Darwin/16.1.0'
+    post_url = 'http://api.wat.tv/services/Delivery'
+    data = {
+        'appName': app_name, 'method': 'getUrl', 'mediaId': mid,
+        'authKey': GetAuthKey(app_name, mid), 'version': '1.8.14',
+        'hostingApplicationName': 'com.tf1.applitf1', 'hostingApplicationVersion': '6.3'
+        }
 
-    data = ('appName=%s&method=%s&mediaId=%s&authKey=%s&version=%s&hostingApplicationName=%s&hostingApplicationVersion=%s') % (app_name, method, media_id, auth_key, version, hosting_application_name, hosting_application_version)
-    payload = JSON.ObjectFromString(HTTP.Request('http://api.wat.tv/services/Delivery', headers={'User-Agent': user_agent}, cacheTime=60, data=data).content)
-
-    m3u8_url = re.sub(r'&?bw(?:max|min)=\d+', '', payload['message'])
-
-    return m3u8_url
+    try:
+        payload = JSON.ObjectFromString(HTTP.Request(post_url, headers={'User-Agent': user_agent}, cacheTime=60, values=data).content)
+        return Regex(r'&?bw(?:max|min)=\d+').sub('', payload['message'])
+    except:
+        Log.Exception(u"Error: Cannot parse JSON Object from {}?{} >>>".format(post_url, data))
+    return None
