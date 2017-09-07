@@ -8,17 +8,18 @@ def MetadataObjectForURL(url):
 
     html = HTML.ElementFromString(get_page(url))
 
-    container = html.xpath('//div[contains(@id, "contentPlayer")]/div/div/div/div[contains(@class, "container")]')[0]
+    section = html.xpath('//section[contains(@id, "content_video")]')[0]
+    player = section.xpath('//div[contains(@id, "player_video")]/div[contains(@id, "contentPlayer")]/div/div/div[contains(@class, "container")]')[0]
 
-    title = container.xpath('./div[contains(@class, "content")]/h1[contains(@class, "title")]/text()')[0]
-    summary = container.xpath('./div[contains(@class, "content")]/div[contains(@class, "description")]/p/text()')[0]
-    thumb = 'http:' + container.xpath('./div[contains(@class, "iframe")]/meta[contains(@itemprop, "thumbnailUrl")]/@content')[0]
+    title = section.xpath('./div[contains(@class, "description_container")]/article/span[contains(@class, "title")]/text()')[0]
+    summary = section.xpath('./div[contains(@class, "description_container")]/article/div[contains(@class, "description")]/p/text()')[0]
+    thumb = 'http:' + player.xpath('./div[contains(@class, "iframe")]/meta[contains(@itemprop, "thumbnailUrl")]/@content')[0]
     try:
-        duration = int(container.xpath('./div[contains(@class, "iframe")]/meta[contains(@itemprop, "duration")]/@content')[0]) * 1000
+        duration = int(player.xpath('./div[contains(@class, "iframe")]/meta[contains(@itemprop, "duration")]/@content')[0]) * 1000
     except:
         duration = None
     try:
-        oaa = Datetime.ParseDate(container.xpath('./div[contains(@class, "iframe")]/meta[contains(@itemprop, "uploadDate")]/@content')[0])
+        oaa = Datetime.ParseDate(player.xpath('./div[contains(@class, "iframe")]/meta[contains(@itemprop, "uploadDate")]/@content')[0])
     except:
         oaa = None
 
