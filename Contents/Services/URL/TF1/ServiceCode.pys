@@ -78,35 +78,35 @@ def get_page(url, cachetime=10):
     return page
 
 ####################################################################################################
-def GetAuthKey(app_name, media_id):
-
-    secret = String.Decode('VzNtMCMxbUZJ')
-    timestamp = get_page('http://www.wat.tv/servertime2', cachetime=60)
-
-    string = '%s-%s-%s-%s-%s' % (media_id, secret, app_name, secret, timestamp)
-
-    return Hash.MD5(string) + '/' + timestamp
+def GenerateAuthKey(str1, str2, str3, str4):
+    return Hash.MD5('%s-%s-%s-%s-%s' % (str1, str2, str3, str2, str4))
 
 ####################################################################################################
 def get_hls(prog_url):
 
     page = get_page(prog_url)
+
     mid = RE_MEDIA_ID.search(page)
     if not mid:
         raise Ex.MediaNotAvailable
+    mid = mid.group('media_id')
 
     app_name = 'sdk/Iphone/1.0'
-    mid = mid.group('media_id')
-    user_agent = 'MyTF1/16090602 CFNetwork/808.1.4 Darwin/16.1.0'
-    post_url = 'http://api.wat.tv/services/Delivery'
+    key = 'W3m0#1mFI'
+    compute_time = get_page('http://www.wat.tv/servertime2', cachetime=60)
+
     data = {
         'appName': app_name, 'method': 'getUrl', 'mediaId': mid,
-        'authKey': GetAuthKey(app_name, mid), 'version': '1.8.14',
-        'hostingApplicationName': 'com.tf1.applitf1', 'hostingApplicationVersion': '6.3'
-        }
+        'authKey': GenerateAuthKey(mid, key, app_name, compute_time) + '/' + compute_time, 'version': '2.2.11',
+        'hostingApplicationName': 'com.tf1.applitf1', 'hostingApplicationVersion': '7.4'
+    }
+    headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'MYTF1/17090103 CFNetwork/811.5.4 Darwin/16.7.0'
+    }
 
     try:
-        payload = JSON.ObjectFromString(HTTP.Request(post_url, headers={'User-Agent': user_agent}, cacheTime=60, values=data).content)
+        payload = JSON.ObjectFromString(HTTP.Request('https://api.wat.tv/services/Delivery', headers=headers, cacheTime=60, values=data).content)
         return Regex(r'&?bw(?:max|min)=\d+').sub('', payload['message'])
     except:
         Log.Exception(u"Error: Cannot parse JSON Object from {}?{} >>>".format(post_url, data))
