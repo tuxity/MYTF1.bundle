@@ -11,7 +11,7 @@ def MetadataObjectForURL(url):
     section = html.xpath('//section[contains(@id, "content_video")]')[0]
     player = section.xpath('//div[contains(@id, "player_video")]/div[contains(@id, "contentPlayer")]/div/div/div[contains(@class, "container")]')[0]
 
-    title = section.xpath('./div[contains(@class, "description_container")]/article/span[contains(@class, "title")]/text()')[0]
+    title = section.xpath('./div[contains(@class, "description_container")]/article/h1[contains(@class, "title")]/text()')[0]
     summary = section.xpath('./div[contains(@class, "description_container")]/article/div[contains(@class, "description")]/p/text()')[0]
     thumb = 'http:' + player.xpath('./div[contains(@class, "iframe")]/meta[contains(@itemprop, "thumbnailUrl")]/@content')[0]
     try:
